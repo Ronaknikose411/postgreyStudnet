@@ -28,4 +28,4 @@ const Student = sequelize.define('Student', {
   timestamps: true,
 });
 
-module.exports = Student;
+module.exports = Student; add .
