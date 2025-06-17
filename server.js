@@ -6,10 +6,13 @@ require('dotenv').config();
 const app = express();
 app.use(express.json());
 
+// Make Sequelize instance available to controllers
+app.set('sequelize', sequelize);
+
 app.use('/api/students', studentRoutes);
 
 // Sync database and start server
 const PORT = process.env.PORT || 5656;
-sequelize.sync({ force: true }).then(() => {
+sequelize.sync().then(() => { // Remove force: true
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }).catch(err => console.error('Unable to connect to the database:', err));
