@@ -1,15 +1,10 @@
 const Student = require('../models/Student');
-const Mark = require('../models/Mark');
 
 // Create a new student
 exports.createStudent = async (req, res) => {
   try {
-    const { name, email, dateOfBirth, marks } = req.body;
-    const student = await Student.create({ name, email, dateOfBirth });
-    if (marks && marks.length > 0) {
-      const markData = marks.map(mark => ({ ...mark, studentId: student.id }));
-      await Mark.bulkCreate(markData);
-    }
+    const { name, email, age, parentId } = req.body;
+    const student = await Student.create({ name, email, age, parentId });
     res.status(201).json(student);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -24,23 +19,28 @@ exports.getAllStudents = async (req, res) => {
     const { count, rows } = await Student.findAndCountAll({
       limit: parseInt(limit),
       offset: parseInt(offset),
+      order: [['createdAt', 'DESC']],
     });
     res.json({
       data: rows,
-      total: count,
-      page: parseInt(page),
-      totalPages: Math.ceil(count / limit),
+      meta: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit),
+      },
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// Get a single student by ID with marks
-exports.getStudentById = async (req, res) => {
+// Get a single student by parentId with marks
+exports.getStudentByParentId = async (req, res) => {
   try {
-    const student = await Student.findByPk(req.params.id, {
-      include: [{ model: Mark, attributes: ['subject', 'score'] }],
+    const student = await Student.findOne({
+      where: { parentId: req.params.parentId },
+      include: [{ model: require('../models/Mark'), attributes: ['subject', 'score'] }],
     });
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
@@ -54,17 +54,12 @@ exports.getStudentById = async (req, res) => {
 // Update a student
 exports.updateStudent = async (req, res) => {
   try {
-    const { name, email, dateOfBirth, marks } = req.body;
-    const student = await Student.findByPk(req.params.id);
+    const { name, email, age } = req.body;
+    const student = await Student.findOne({ where: { parentId: req.params.parentId } });
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
     }
-    await student.update({ name, email, dateOfBirth });
-    if (marks && marks.length > 0) {
-      await Mark.destroy({ where: { studentId: student.id } });
-      const markData = marks.map(mark => ({ ...mark, studentId: student.id }));
-      await Mark.bulkCreate(markData);
-    }
+    await student.update({ name, email, age });
     res.json(student);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -72,15 +67,17 @@ exports.updateStudent = async (req, res) => {
 };
 
 // Delete a student
+// Delete a student
 exports.deleteStudent = async (req, res) => {
   try {
-    const student = await Student.findByPk(req.params.id);
+    const student = await Student.findOne({ where: { parentId: req.params.parentId } });
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
     }
     await student.destroy();
-    res.json({ message: 'Student deleted' });
+    res.status(200).json({ message: 'Student deleted successfully',student });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+

@@ -19,13 +19,22 @@ const Student = sequelize.define('Student', {
       isEmail: true,
     },
   },
-  dateOfBirth: {
-    type: DataTypes.DATEONLY,
+  age: {
+    type: DataTypes.INTEGER,
     allowNull: false,
+    validate: {
+      isInt: true,
+      min: 0,
+    },
+  },
+  parentId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    unique: true,
   },
 }, {
   tableName: 'students',
   timestamps: true,
 });
 
-module.exports = Student; add .
+module.exports = Student;

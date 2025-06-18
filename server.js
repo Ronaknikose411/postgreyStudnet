@@ -1,6 +1,7 @@
 const express = require('express');
 const sequelize = require('./config/db');
 const studentRoutes = require('./routes/studentRoutes');
+const markRoutes = require('./routes/markRoutes');
 const cors = require('cors'); // Add cors package
 require('dotenv').config();
 
@@ -14,8 +15,9 @@ app.use(express.json());
 // Make Sequelize instance available to controllers
 app.set('sequelize', sequelize);
 
-app.use('/api/students', studentRoutes);
 
+app.use('/api/students', studentRoutes);
+app.use('/api/students/mark', markRoutes);
 // Sync database and start server
 const PORT = process.env.PORT || 5656;
 sequelize.sync().then(() => {

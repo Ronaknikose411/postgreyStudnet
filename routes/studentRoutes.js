@@ -4,8 +4,8 @@ const studentController = require('../controllers/studentController');
 
 router.post('/add', studentController.createStudent);
 router.get('/viewall', studentController.getAllStudents);
-router.get('/view/:id', studentController.getStudentById);
-router.put('/update/:id', studentController.updateStudent);
-router.delete('/delete/:id', studentController.deleteStudent);
+router.get('/view/:parentId', studentController.getStudentByParentId);
+router.put('/update/:parentId', studentController.updateStudent);
+router.delete('/delete/:parentId', studentController.deleteStudent);
 
 module.exports = router;

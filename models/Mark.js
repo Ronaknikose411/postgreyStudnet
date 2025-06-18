@@ -8,25 +8,28 @@ const Mark = sequelize.define('Mark', {
     primaryKey: true,
     autoIncrement: true,
   },
-  studentId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: Student,
-      key: 'id',
-    },
-    onDelete: 'CASCADE',
-  },
   subject: {
     type: DataTypes.STRING,
     allowNull: false,
+    validate: {
+      notEmpty: true,
+    },
   },
   score: {
     type: DataTypes.INTEGER,
     allowNull: false,
     validate: {
+      isInt: true,
       min: 0,
       max: 100,
+    },
+  },
+  parentId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: Student,
+      key: 'parentId',
     },
   },
 }, {
@@ -34,7 +37,8 @@ const Mark = sequelize.define('Mark', {
   timestamps: true,
 });
 
-Student.hasMany(Mark, { foreignKey: 'studentId' });
-Mark.belongsTo(Student, { foreignKey: 'studentId' });
+// Define associations
+Mark.belongsTo(Student, { foreignKey: 'parentId' });
+Student.hasMany(Mark, { foreignKey: 'parentId' });
 
 module.exports = Mark;
