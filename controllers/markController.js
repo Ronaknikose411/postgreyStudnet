@@ -1,141 +1,211 @@
 const Mark = require('../models/Mark');
 const Student = require('../models/Student');
-
+const Sequelize = require('sequelize'); 
+// Import Sequelize for col operator
 // Create marks for a student
 exports.createMarks = async (req, res) => {
   try {
+    const parentId = req.params.parentId;
+    const { marks } = req.body;
+    console.log('createMarks - Received parentId:', parentId, 'Payload:', JSON.stringify(req.body, null, 2));
 
-    const { marks ,parentId} = req.body; // Expecting an array of { subject, score }
-    
-    const student = await Student.findOne({ where: { parentId } });
+    if (!parentId) return res.status(400).json({ error: 'Parent ID is required' });
+    const student = await Student.findOne({ where: { parentId: parseInt(parentId) } });
     if (!student) {
+      console.log(`Student not found for parentId: ${parentId}`);
       return res.status(404).json({ error: 'Student not found' });
     }
+    if (!marks || !Array.isArray(marks) || marks.length === 0) {
+      return res.status(400).json({ error: 'Marks must be a non-empty array of { subject, score }' });
+    }
 
-    if (!marks || !Array.isArray(marks)) {
-      return res.status(400).json({ error: 'Marks must be an array of { subject, score }' });
+    for (const mark of marks) {
+      if (!mark.subject || typeof mark.subject !== 'string' || mark.subject.trim() === '') {
+        return res.status(400).json({ error: 'Each mark must have a valid subject' });
+      }
+      if (typeof mark.score !== 'number' || mark.score < 0 || mark.score > 100) {
+        return res.status(400).json({ error: 'Each mark must have a score between 0 and 100' });
+      }
     }
 
     const markData = marks.map(mark => ({
-      subject: mark.subject,
-      score: mark.score,
-      parentId,
+      subject: mark.subject.trim(),
+      score: parseInt(mark.score),
+      parentId: parseInt(parentId),
     }));
 
-    const createdMarks = await Mark.bulkCreate(markData);
-    res.status(201).json(createdMarks);
+    const createdMarks = await Mark.bulkCreate(markData, { returning: true });
+    console.log('Created marks:', JSON.stringify(createdMarks, null, 2));
+    res.status(201).json({
+      message: 'Marks created successfully',
+      data: createdMarks.map(mark => ({
+        id: mark.id,
+        parentId: mark.parentId,
+        subject: mark.subject,
+        score: mark.score,
+      })),
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('createMarks error:', error);
+    res.status(500).json({ error: `Failed to create marks: ${error.message}` });
   }
 };
 
 // Get all marks for a student by parentId
+// Get all marks for a student by parentId
 exports.getMarksByParentId = async (req, res) => {
   try {
+    const parentId = req.params.parentId;
+    console.log('getMarksByParentId - Received parentId:', parentId);
+
+    if (!parentId) {
+      return res.status(400).json({ error: 'Parent ID is required' });
+    }
+
     const marks = await Mark.findAll({
-      where: { parentId: req.params.parentId },
-      attributes: ['subject', 'score'],
+      where: { parentId: parseInt(parentId) },
+      include: [
+        {
+          model: Student,
+          attributes: ['name'],
+        },
+      ],
+      attributes: ['id', 'subject', 'score', 'parentId'],
     });
+
     if (!marks || marks.length === 0) {
+      console.log(`No marks found for parentId: ${parentId}`);
       return res.status(404).json({ error: 'No marks found for this student' });
     }
-    res.json(marks);
+
+    const data = marks.map(mark => ({
+      id: mark.id,
+      subject: mark.subject,
+      score: mark.score,
+      parentId: mark.parentId,
+      name: mark.Student?.name || 'N/A',
+    }));
+
+    res.status(200).json({
+      message: 'Marks retrieved successfully',
+      data,
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('getMarksByParentId error:', error);
+    res.status(500).json({ error: `Failed to retrieve marks: ${error.message}` });
   }
 };
 
 // Update marks for a student
 exports.updateMarks = async (req, res) => {
   try {
-    const { parentId } = req.params;
-    const { marks } = req.body; // Expecting an array of { subject, score }
+    const parentId = req.params.parentId;
+    const { marks } = req.body;
+    console.log('updateMarks - Received parentId:', parentId, 'Payload:', JSON.stringify(req.body, null, 2));
 
-    const student = await Student.findOne({ where: { parentId } });
+    if (!parentId) return res.status(400).json({ error: 'Parent ID is required' });
+    const student = await Student.findOne({ where: { parentId: parseInt(parentId) } });
     if (!student) {
+      console.log(`Student not found for parentId: ${parentId}`);
       return res.status(404).json({ error: 'Student not found' });
     }
-
-    if (!marks || !Array.isArray(marks)) {
-      return res.status(400).json({ error: 'Marks must be an array of { subject, score }' });
+    if (!marks || !Array.isArray(marks) || marks.length === 0) {
+      return res.status(400).json({ error: 'Marks must be a non-empty array of { subject, score }' });
     }
 
-    // Delete existing marks for the student
-    await Mark.destroy({ where: { parentId } });
+    for (const mark of marks) {
+      if (!mark.subject || typeof mark.subject !== 'string' || mark.subject.trim() === '') {
+        return res.status(400).json({ error: 'Each mark must have a valid subject' });
+      }
+      if (typeof mark.score !== 'number' || mark.score < 0 || mark.score > 100) {
+        return res.status(400).json({ error: 'Each mark must have a score between 0 and 100' });
+      }
+    }
 
-    // Create new marks
+    await Mark.destroy({ where: { parentId: parseInt(parentId) } });
     const markData = marks.map(mark => ({
-      subject: mark.subject,
-      score: mark.score,
-      parentId,
+      subject: mark.subject.trim(),
+      score: parseInt(mark.score),
+      parentId: parseInt(parentId),
     }));
 
-    const updatedMarks = await Mark.bulkCreate(markData);
-    res.json(updatedMarks);
+    const updatedMarks = await Mark.bulkCreate(markData, { returning: true });
+    console.log('Updated marks:', JSON.stringify(updatedMarks, null, 2));
+    res.status(200).json({
+      message: 'Marks updated successfully',
+      data: updatedMarks.map(mark => ({
+        id: mark.id,
+        parentId: mark.parentId,
+        subject: mark.subject,
+        score: mark.score,
+      })),
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('updateMarks error:', error);
+    res.status(500).json({ error: `Failed to update marks: ${error.message}` });
   }
 };
 
-// Delete marks for a specific subject for a student
+// Delete all marks for a student
 exports.deleteMarks = async (req, res) => {
   try {
-    const { parentId } = req.params;
-    const { subject } = req.body;
+    const parentId = req.params.parentId;
+    console.log('deleteMarks - Received parentId:', parentId);
 
-    // Validate subject
-    if (!subject || typeof subject !== 'string' || subject.trim() === '') {
-      return res.status(400).json({ error: 'Subject must be a non-empty string' });
-    }
-
-    const student = await Student.findOne({ where: { parentId } });
+    if (!parentId) return res.status(400).json({ error: 'Parent ID is required' });
+    const student = await Student.findOne({ where: { parentId: parseInt(parentId) } });
     if (!student) {
+      console.log(`Student not found for parentId: ${parentId}`);
       return res.status(404).json({ error: 'Student not found' });
     }
 
-    // Find marks to delete (for response purposes)
-    const marksToDelete = await Mark.findAll({
-      where: { parentId, subject },
+    const deletedCount = await Mark.destroy({ where: { parentId: parseInt(parentId) } });
+    console.log(`Deleted ${deletedCount} marks for parentId: ${parentId}`);
+    if (deletedCount === 0) {
+      return res.status(404).json({ error: 'No marks found for this student' });
+    }
+
+    res.status(200).json({
+      message: `Successfully deleted ${deletedCount} mark(s)`,
+    });
+  } catch (error) {
+    console.error('deleteMarks error:', error);
+    res.status(500).json({ error: `Failed to delete marks: ${error.message}` });
+  }
+};
+
+exports.getAllStudentsWithMarks = async (req, res) => {
+  try {
+    const marks = await Mark.findAll({
+      include: [
+        {
+          model: Student,
+          attributes: ['name'],
+          required: false, // Use left join to include marks even if Student is missing
+        },
+      ],
       attributes: ['id', 'subject', 'score', 'parentId'],
     });
 
-    if (!marksToDelete || marksToDelete.length === 0) {
-      return res.status(404).json({ error: `No marks found for subject '${subject}'` });
+    if (!marks || marks.length === 0) {
+      console.log('No marks found in the database');
+      return res.status(404).json({ error: 'No marks found' });
     }
 
-    // Delete marks for the specified subject
-    const deletedCount = await Mark.destroy({ where: { parentId, subject } });
+    const data = marks.map(mark => ({
+      id: mark.id,
+      parentId: mark.parentId,
+      name: mark.Student?.name || 'N/A',
+      subject: mark.subject,
+      score: mark.score,
+    }));
 
     res.status(200).json({
-      message: `Successfully deleted ${deletedCount} mark(s) for subject '${subject}'`,
-      deletedMarks: marksToDelete,
+      message: 'All marks retrieved successfully',
+      data,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// Get all students with their marks and pagination
-exports.getAllStudentsWithMarks = async (req, res) => {
-  try {
-    const { page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
-    const { count, rows } = await Student.findAndCountAll({
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [['createdAt', 'DESC']],
-      include: [{ model: Mark, attributes: ['subject', 'score'] }],
-    });
-    res.json({
-      data: rows,
-      meta: {
-        total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / limit),
-      },
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('getAllStudentsWithMarks error:', error);
+    res.status(500).json({ error: `Failed to retrieve marks: ${error.message}` });
   }
 };

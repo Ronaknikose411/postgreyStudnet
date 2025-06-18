@@ -32,13 +32,20 @@ const Mark = sequelize.define('Mark', {
       key: 'parentId',
     },
   },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: true,
+    },
+  },
 }, {
   tableName: 'marks',
   timestamps: true,
 });
 
 // Define associations
-Mark.belongsTo(Student, { foreignKey: 'parentId' });
-Student.hasMany(Mark, { foreignKey: 'parentId' });
+Mark.belongsTo(Student, { foreignKey: 'parentId', targetKey: 'parentId' });
+Student.hasMany(Mark, { foreignKey: 'parentId', sourceKey: 'parentId' });
 
 module.exports = Mark;

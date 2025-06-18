@@ -34,7 +34,7 @@ const Student = sequelize.define('Student', {
   },
 }, {
   tableName: 'students',
-  timestamps: true,
+  timestamps: false,
 });
 
 module.exports = Student;
