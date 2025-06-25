@@ -19,7 +19,7 @@ exports.getAllStudents = async (req, res) => {
     const { count, rows } = await Student.findAndCountAll({
       limit: parseInt(limit),
       offset: parseInt(offset),
-      order: [['createdAt', 'DESC']],
+      order: [['id', 'DESC']], // Sort by id instead of createdAt
     });
     res.json({
       data: rows,
@@ -34,7 +34,6 @@ exports.getAllStudents = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 // Get a single student by parentId with marks
 exports.getStudentByParentId = async (req, res) => {
   try {

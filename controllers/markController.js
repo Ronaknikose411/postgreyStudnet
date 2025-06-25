@@ -1,7 +1,7 @@
 const Mark = require('../models/Mark');
 const Student = require('../models/Student');
-const Sequelize = require('sequelize'); 
-// Import Sequelize for col operator
+const Sequelize = require('sequelize');
+
 // Create marks for a student
 exports.createMarks = async (req, res) => {
   try {
@@ -32,6 +32,7 @@ exports.createMarks = async (req, res) => {
       subject: mark.subject.trim(),
       score: parseInt(mark.score),
       parentId: parseInt(parentId),
+      name: student.name, // Include student's name
     }));
 
     const createdMarks = await Mark.bulkCreate(markData, { returning: true });
@@ -43,6 +44,7 @@ exports.createMarks = async (req, res) => {
         parentId: mark.parentId,
         subject: mark.subject,
         score: mark.score,
+        name: mark.name,
       })),
     });
   } catch (error) {
@@ -51,7 +53,6 @@ exports.createMarks = async (req, res) => {
   }
 };
 
-// Get all marks for a student by parentId
 // Get all marks for a student by parentId
 exports.getMarksByParentId = async (req, res) => {
   try {
@@ -70,7 +71,7 @@ exports.getMarksByParentId = async (req, res) => {
           attributes: ['name'],
         },
       ],
-      attributes: ['id', 'subject', 'score', 'parentId'],
+      attributes: ['id', 'subject', 'score', 'parentId', 'name'],
     });
 
     if (!marks || marks.length === 0) {
@@ -83,7 +84,7 @@ exports.getMarksByParentId = async (req, res) => {
       subject: mark.subject,
       score: mark.score,
       parentId: mark.parentId,
-      name: mark.Student?.name || 'N/A',
+      name: mark.Student?.name || mark.name || 'N/A',
     }));
 
     res.status(200).json({
@@ -127,6 +128,7 @@ exports.updateMarks = async (req, res) => {
       subject: mark.subject.trim(),
       score: parseInt(mark.score),
       parentId: parseInt(parentId),
+      name: student.name, // Include student's name
     }));
 
     const updatedMarks = await Mark.bulkCreate(markData, { returning: true });
@@ -138,6 +140,7 @@ exports.updateMarks = async (req, res) => {
         parentId: mark.parentId,
         subject: mark.subject,
         score: mark.score,
+        name: mark.name,
       })),
     });
   } catch (error) {
@@ -170,10 +173,11 @@ exports.deleteMarks = async (req, res) => {
     });
   } catch (error) {
     console.error('deleteMarks error:', error);
-    res.status(500).json({ error: `Failed to delete marks: ${error.message}` });
+    res.status(500).json({ error: ` personally identifiable information delete marks: ${error.message}` });
   }
 };
 
+// Get all marks with student names
 exports.getAllStudentsWithMarks = async (req, res) => {
   try {
     const marks = await Mark.findAll({
@@ -184,7 +188,7 @@ exports.getAllStudentsWithMarks = async (req, res) => {
           required: false, // Use left join to include marks even if Student is missing
         },
       ],
-      attributes: ['id', 'subject', 'score', 'parentId'],
+      attributes: ['id', 'subject', 'score', 'parentId', 'name'],
     });
 
     if (!marks || marks.length === 0) {
@@ -195,7 +199,7 @@ exports.getAllStudentsWithMarks = async (req, res) => {
     const data = marks.map(mark => ({
       id: mark.id,
       parentId: mark.parentId,
-      name: mark.Student?.name || 'N/A',
+      name: mark.Student?.name || mark.name || 'N/A',
       subject: mark.subject,
       score: mark.score,
     }));
